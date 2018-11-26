@@ -1,0 +1,28 @@
+html, body {
+    height: 100%;
+    /* background: black; */
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+canvas {
+    outline: none;
+}
+
+.grid {
+    height: 800px;
+    width: 800px;
+}
+
+.controls {
+    padding: 16px;
+}
+
+.controls div {
+    padding: 5px 0;
+}
+
+.controls input[type="number"] {
+    width: 70px;
+}
