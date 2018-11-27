@@ -40,7 +40,7 @@ export const ControlBarComponent = Vue.extend({
             </div>
             <div>
                 <textarea v-model="activeCellsJson"></textarea>
-                <button @click="retrieveActiveCells()">Retrive cells</button>
+                <button @click="retrieveActiveCells()">Retrieve cells</button>
                 <button @click="updateActiveCells()">Update cells</button>
             </div>
         </div>

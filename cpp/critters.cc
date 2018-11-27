@@ -108,6 +108,10 @@ Options parse_options(int argc, char** argv) {
             else if (starts_with(s, "--ca=")) {
                 opts.ca_type = ca_type_after_equal_sign(s);
             }
+            else {
+                std::cerr << "Unrecognized argument: " << s << "\n";
+                usage_error();
+            }
         }
     }
     catch (std::exception& ex) {
@@ -213,6 +217,7 @@ int main(int argc, char** argv) {
                 std::cout << "Frame " << grid->frame_number() << "\n";
             }
             std::cout << json_for_cells(grid->get_active_cells()) << "\n";
+            std::cout.flush();
         }
     }
 
