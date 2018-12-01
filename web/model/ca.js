@@ -1,10 +1,54 @@
-const BlockAction = {
-    NOOP: 0,
-    INVERT: 1,
-    ROTATE_90: 2,
-    ROTATE_180: 3,
-    ROTATE_270: 4,
-};
+// Optimization for getting the bits of integers between 0 and 15.
+const INTEGER_BITS = [
+    [0, 0, 0, 0],
+    [0, 0, 0, 1],
+    [0, 0, 1, 0],
+    [0, 0, 1, 1],
+    [0, 1, 0, 0],
+    [0, 1, 0, 1],
+    [0, 1, 1, 0],
+    [0, 1, 1, 1],
+    [1, 0, 0, 0],
+    [1, 0, 0, 1],
+    [1, 0, 1, 0],
+    [1, 0, 1, 1],
+    [1, 1, 0, 0],
+    [1, 1, 0, 1],
+    [1, 1, 1, 0],
+    [1, 1, 1, 1],
+];
+
+/**
+ * Transition table for a 2x2 block of a cellular automaton using the Margolus neighborhood.
+ * On every tick, the grid is divided into 2x2 blocks. On odd ticks, the blocks are shifted
+ * one cell vertically and horizontally relative to even ticks. Each block is updated according
+ * to a table that maps the four input bits to four output bits. For a reversible cellular
+ * automaton, this mapping must be one-to-one, so that every possible output is produced by
+ * exactly one input. There can be separate mappings for even and odd ticks.
+ */
+class TransitionTable {
+    constructor(evenForward, opt_oddForward) {
+        this.evenForward = evenForward.slice();
+        this.evenBackward = verifyAndInvertStates(this.evenForward);
+        this.oddForward = (opt_oddForward || evenForward).slice();
+        this.oddBackward = verifyAndInvertStates(this.oddForward);
+    }
+
+    /**
+     * Returns the next state of a 2x2 block. The returned value is a four bit integer
+     * (i.e. between 0 and 15), where the binary digits define the active cells of the next state.
+     * The order from most significant to least significant bits is top left, top right,
+     * bottom left, and bottom right. For example, a return value of 5 (0b0101) means that the
+     * next state should have the top right and bottom right cells enabled.
+     */
+    nextBlockState(useEvenGrid, isForward, topLeft, topRight, bottomLeft, bottomRight) {
+        const index = (topLeft ? 8 : 0) + (topRight ? 4 : 0) + (bottomLeft ? 2 : 0) + (bottomRight);
+        const table = useEvenGrid ?
+            (isForward ? this.evenForward : this.evenBackward) :
+            (isForward ? this.oddForward : this.oddBackward);
+        return table[index];
+    }
+}
 
 export class MargolusCA {
     constructor(numRows, numCols) {
@@ -73,42 +117,17 @@ export class MargolusCA {
         this.frameNumber = 0;
     }
 
-    _update2x2Block(topLeft, topRight, bottomLeft, bottomRight) {
+    _update2x2Block(isEven, topLeft, topRight, bottomLeft, bottomRight) {
         // https://en.wikipedia.org/wiki/Critters_(block_cellular_automaton)
         const cg = this.currentGrid;
         const sg = this.scratchGrid;
-        switch (this.transitionRule.blockAction(this, topLeft, topRight, bottomLeft, bottomRight)) {
-            case BlockAction.NOOP:
-                sg[topLeft] = cg[topLeft];
-                sg[topRight] = cg[topRight];
-                sg[bottomLeft] = cg[bottomLeft];
-                sg[bottomRight] = cg[bottomRight];
-                break;
-            case BlockAction.INVERT:
-                sg[topLeft] = 1 - cg[topLeft];
-                sg[topRight] = 1 - cg[topRight];
-                sg[bottomLeft] = 1 - cg[bottomLeft];
-                sg[bottomRight] = 1 - cg[bottomRight];
-                break;
-            case BlockAction.ROTATE_180:
-                sg[topLeft] = cg[bottomRight];
-                sg[topRight] = cg[bottomLeft];
-                sg[bottomLeft] = cg[topRight];
-                sg[bottomRight] = cg[topLeft];
-                break;
-            case BlockAction.ROTATE_90:
-                sg[topLeft] = cg[topRight];
-                sg[topRight] = cg[bottomRight];
-                sg[bottomLeft] = cg[topLeft];
-                sg[bottomRight] = cg[bottomLeft];
-                break;
-            case BlockAction.ROTATE_270:
-                sg[topLeft] = cg[bottomLeft];
-                sg[topRight] = cg[topLeft];
-                sg[bottomLeft] = cg[bottomRight];
-                sg[bottomRight] = cg[topRight];
-                break;
-        }
+        const index = this.transitionRule.table.nextBlockState(
+            isEven, !this.isReversed, cg[topLeft], cg[topRight], cg[bottomLeft], cg[bottomRight]);
+        const nextCells = INTEGER_BITS[index];
+        sg[topLeft] = nextCells[0];
+        sg[topRight] = nextCells[1];
+        sg[bottomLeft] = nextCells[2];
+        sg[bottomRight] = nextCells[3];
     }
 
     useEvenGrid() {
@@ -121,7 +140,7 @@ export class MargolusCA {
                 const rowOffset = r * this.numCols;
                 for (let c = 0; c < this.numCols; c += 2) {
                     const offset = rowOffset + c;
-                    this._update2x2Block(
+                    this._update2x2Block(true,
                         offset, offset + 1,
                         offset + this.numCols, offset + this.numCols + 1);
                 }
@@ -133,7 +152,7 @@ export class MargolusCA {
                 const rowOffset = r * this.numCols;
                 for (let c = 1; c < this.numCols - 1; c += 2) {
                     const offset = rowOffset + c;
-                    this._update2x2Block(
+                    this._update2x2Block(false,
                         offset, offset + 1,
                         offset + this.numCols, offset + this.numCols + 1);
                 }
@@ -141,19 +160,19 @@ export class MargolusCA {
             // Along bottom row, wrapping to top.
             const lastRowOffset = this.numCols * (this.numRows - 1);
             for (let c = 1; c < this.numCols - 1; c += 2) {
-                this._update2x2Block(
+                this._update2x2Block(false,
                     lastRowOffset + c, lastRowOffset + c + 1,
                     c, c + 1);
             }
             // Along right edge, wrapping to left.
             for (let r = 1; r < this.numRows - 1; r += 2) {
                 const rowOffset = r * this.numCols;
-                this._update2x2Block(
+                this._update2x2Block(false,
                     rowOffset + this.numCols - 1, rowOffset,
                     rowOffset + 2 * this.numCols - 1, rowOffset + this.numCols);
             }
             // "Top left" at bottom right, wrapping to the other corners.
-            this._update2x2Block(
+            this._update2x2Block(false,
                 this.numRows * this.numCols - 1, (this.numRows - 1) * this.numCols,
                 this.numCols - 1, 0);
         }
@@ -168,23 +187,46 @@ export class MargolusCA {
     }
 }
 
+const verifyAndInvertStates = (states) => {
+    if (states.length !== 16) {
+        throw Error(`States array must have length of 16, got ${states.length}`);
+    }
+    const inverse = [];
+    const sset = new Set();
+    for (let i = 0; i < states.length; i++) {
+        const s = states[i];
+        if (!Number.isInteger(s)) {
+            throw Error(`States array has non-integer at index ${i}: ${s}`);
+        }
+        if (s < 0 || s >= 16) {
+            throw Error(`States array has value out of range at index ${i}: ${s}`);
+        }
+        if (sset.has(s)) {
+            throw Error(`States array has duplicate value: ${s}`);
+        }
+        sset.add(s);
+        inverse[s] = i;
+    }
+    return inverse;
+}
+
 export const Rules = {
     // https://en.wikipedia.org/wiki/Critters_(block_cellular_automaton)
     // We use the variation that has different transitions for even and odd frames.
     // This preserves the number of active cells.
     CRITTERS: {
         name: 'Critters',
-        blockAction(ca, topLeft, topRight, bottomLeft, bottomRight) {
-            const cg = ca.currentGrid;
-            const numAlive = cg[topLeft] + cg[topRight] + cg[bottomLeft] + cg[bottomRight];
-            if (numAlive === 2) {
-                return BlockAction.INVERT;
-            }
-            if ((numAlive === 1 && !ca.useEvenGrid()) || (numAlive === 3 && ca.useEvenGrid())) {
-                return BlockAction.ROTATE_180;
-            }
-            return BlockAction.NOOP;
-        },
+        // If two cells are active, invert the block. Rotate a half turn if three cells are active
+        // on an even frame, or if one cell is active on an odd frame.
+        table: new TransitionTable(
+            [
+                0b0000, 0b0001, 0b0010, 0b1100, 0b0100, 0b1010, 0b1001, 0b1110,
+                0b1000, 0b0110, 0b0101, 0b1101, 0b0011, 0b1011, 0b0111, 0b1111,
+            ],
+            [
+                0b0000, 0b1000, 0b0100, 0b1100, 0b0010, 0b1010, 0b1001, 0b0111,
+                0b0001, 0b0110, 0b0101, 0b1011, 0b0011, 0b1101, 0b1110, 0b1111,
+            ]),
     },
 
     // https://en.wikipedia.org/wiki/Reversible_cellular_automaton#Synchronization
@@ -194,56 +236,41 @@ export const Rules = {
     // entire grid, so the overall behavior is the same.
     TRON: {
         name: 'Tron',
-        blockAction(ca, topLeft, topRight, bottomLeft, bottomRight) {
-            const cg = ca.currentGrid;
-            const numAlive = cg[topLeft] + cg[topRight] + cg[bottomLeft] + cg[bottomRight];
-            return (numAlive == 0 || numAlive == 4) ? BlockAction.NOOP : BlockAction.INVERT;
-        },
+        // 0000 and 1111 are unchanged, everything else inverts (i => 15-i).
+        table: new TransitionTable([0, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 15]),
     },
 
     // https://www.mitpressjournals.org/doi/pdf/10.1162/978-0-262-32621-6-ch084
     HIGHLANDER: {
         name: 'Highlander',
-        blockAction(ca, topLeft, topRight, bottomLeft, bottomRight) {
-            const cg = ca.currentGrid;
-            const numAlive = cg[topLeft] + cg[topRight] + cg[bottomLeft] + cg[bottomRight];
-            switch (numAlive) {
-                case 2:
-                    return BlockAction.INVERT;
-                case 1:
-                    return ca.isReversed ? BlockAction.ROTATE_270 : BlockAction.ROTATE_90;
-                case 3:
-                    return ca.isReversed ? BlockAction.ROTATE_90 : BlockAction.ROTATE_270;
-                default:
-                    return BlockAction.NOOP;
-            }
-        },
+        // Invert if two cells are active, rotate a quarter turn counterclockwise if one cell is
+        // active, rotate a quarter turn clockwise if three cells are active.
+        table: new TransitionTable([
+            0b0000, 0b0100, 0b0001, 0b1100, 0b1000, 0b1010, 0b1001, 0b1011,
+            0b0010, 0b0110, 0b0101, 0b1110, 0b0011, 0b0111, 0b1101, 0b1111,
+        ]),
     },
 
     // https://en.wikipedia.org/wiki/Reversible_cellular_automaton#Billiard_ball_computation_and_low-power_computing
     // http://fab.cba.mit.edu/classes/862.16/notes/computation/Margolus-1984.pdf
     BILLIARD_BALL: {
         name: 'Billiard ball',
-        blockAction(ca, topLeft, topRight, bottomLeft, bottomRight) {
-            const cg = ca.currentGrid;
-            const numAlive = cg[topLeft] + cg[topRight] + cg[bottomLeft] + cg[bottomRight];
-            if (numAlive === 1) {
-                return BlockAction.ROTATE_180;
-            }
-            if (numAlive === 2 && cg[topLeft] === cg[bottomRight]) {
-                return BlockAction.INVERT;
-            }
-            return BlockAction.NOOP;
-        },
+        // Rotate a half turn if one cell is active. Invert if two cells are active and
+        // diagonally opposite.
+        table: new TransitionTable([
+            0b0000, 0b1000, 0b0100, 0b0011, 0b0010, 0b0101, 0b1001, 0b0111,
+            0b0001, 0b0110, 0b1010, 0b1011, 0b1100, 0b1101, 0b1110, 0b1111,
+        ]),
     },
 
     // https://web.mit.edu/lrs/www/physCA/
     SCHAEFFER: {
         name: 'Schaeffer',
-        blockAction(ca, topLeft, topRight, bottomLeft, bottomRight) {
-            const cg = ca.currentGrid;
-            const numAlive = cg[topLeft] + cg[topRight] + cg[bottomLeft] + cg[bottomRight];
-            return (numAlive === 1 || numAlive === 2) ? BlockAction.ROTATE_180 : BlockAction.NOOP;
-        },
+        // Rotate a half turn if one or two cells are active. (This is a no-op if two active cells
+        // are diagonally opposite).
+        table: new TransitionTable([
+            0b0000, 0b1000, 0b0100, 0b1100, 0b0010, 0b1010, 0b0110, 0b0111,
+            0b0001, 0b1001, 0b0101, 0b1011, 0b0011, 0b1101, 0b1110, 0b1111,
+        ]),
     },
 };

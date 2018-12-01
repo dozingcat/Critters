@@ -166,18 +166,18 @@ std::string json_for_cells(const std::vector<std::vector<uint32_t>>& cells) {
     return ss.str();
 }
 
-std::unique_ptr<MargolusCA> grid_from_options(const Options& opts) {
-    switch (opts.ca_type) {
+std::shared_ptr<TransitionTable> transition_table_for_type(CAType cat) {
+    switch (cat) {
         case CAType::CRITTERS:
-            return std::make_unique<CrittersCA>(opts.num_rows, opts.num_cols);
+            return TransitionTable::CRITTERS();
         case CAType::TRON:
-            std::make_unique<TronCA>(opts.num_rows, opts.num_cols);
+            return TransitionTable::TRON();
         case CAType::HIGHLANDER:
-            return std::make_unique<HighlanderCA>(opts.num_rows, opts.num_cols);
+            return TransitionTable::HIGHLANDER();
         case CAType::BILLIARD_BALL:
-            return std::make_unique<BilliardBallCA>(opts.num_rows, opts.num_cols);
+            return TransitionTable::BILLIARD_BALL();
         case CAType::SCHAEFFER:
-            return std::make_unique<SchaefferCA>(opts.num_rows, opts.num_cols);
+            return TransitionTable::SCHAEFFER();
         default:
             throw std::logic_error("Unknown CAType");
     }
@@ -201,22 +201,22 @@ int main(int argc, char** argv) {
         coords.push_back({nums[2 * i], nums[2 * i + 1]});
     }
 
-    auto grid = grid_from_options(opts);
-    grid->set_num_threads(opts.num_threads);
-    grid->set_cells(coords);
-    grid->set_frame_number(opts.start_frame);
-    grid->set_reversed(opts.end_frame < opts.start_frame);
+    MargolusCA grid(opts.num_rows, opts.num_cols, transition_table_for_type(opts.ca_type));
+    grid.set_num_threads(opts.num_threads);
+    grid.set_cells(coords);
+    grid.set_frame_number(opts.start_frame);
+    grid.set_reversed(opts.end_frame < opts.start_frame);
 
-    while (grid->frame_number() != opts.end_frame) {
-        grid->tick();
-        if (grid->frame_number() == opts.end_frame || (
+    while (grid.frame_number() != opts.end_frame) {
+        grid.tick();
+        if (grid.frame_number() == opts.end_frame || (
                 opts.checkpoint_frames > 0 &&
-                grid->frame_number() % ((int64_t)opts.checkpoint_frames) == 0)) {
+                grid.frame_number() % ((int64_t)opts.checkpoint_frames) == 0)) {
 
             if (opts.checkpoint_frames > 0) {
-                std::cout << "Frame " << grid->frame_number() << "\n";
+                std::cout << "Frame " << grid.frame_number() << "\n";
             }
-            std::cout << json_for_cells(grid->get_active_cells()) << "\n";
+            std::cout << json_for_cells(grid.get_active_cells()) << "\n";
             std::cout.flush();
         }
     }
