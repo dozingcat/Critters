@@ -18,7 +18,7 @@ export const AnimationEditor = Vue.extend({
                     </td>
                     <td>
                         <select v-model="step.transitionRule">
-                            <option v-for="rule in availableRules" :value="rule">
+                            <option v-for="rule in rules" :value="rule">
                                 {{rule.name}}
                             </option>
                         </select>
@@ -42,16 +42,12 @@ export const AnimationEditor = Vue.extend({
         </div>
     `,
 
-    props: ['animation'],
-
-    data: () => ({
-        availableRules: Rules.BUILTIN_RULES,
-    }),
+    props: ['animation', 'rules'],
 
     methods: {
         addStep(index) {
             const rule = (index < this.animation.steps.length) ?
-                this.animation.steps[index].transitionRule : this.availableRules[0];
+                this.animation.steps[index].transitionRule : this.rules[0];
             const newStep = new AnimationStep(rule, 0, 0, null);
             this.animation.addStepAtIndex(newStep, index);
         },

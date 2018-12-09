@@ -35,7 +35,7 @@ const HEX_INDEX_MAP = (() => {
  * automaton, this mapping must be one-to-one, so that every possible output is produced by
  * exactly one input. There can be separate mappings for even and odd ticks.
  */
-class TransitionTable {
+export class TransitionTable {
     constructor(evenForward, opt_oddForward) {
         this.evenForward = evenForward.slice();
         this.evenBackward = verifyAndInvertStates(this.evenForward);
@@ -58,6 +58,51 @@ class TransitionTable {
         return table[index];
     }
 }
+
+TransitionTable.fromHex = (hex) => {
+    const hexToIntArray = (h) => {
+        const ints = [];
+        const hexUpper = hex.toUpperCase();
+        for (let i = 0; i < h.length; i++) {
+            let ch = hexUpper[i];
+            if (!HEX_INDEX_MAP.has(ch)) {
+                throw Error(`Bad hex digit: ${h[i]}`);
+            }
+            ints.push(HEX_INDEX_MAP.get(ch));
+        }
+        return ints;
+    };
+
+    switch (hex.length) {
+        case 16:
+            return new TransitionTable(hexToIntArray(hex));
+        case 32:
+            return new TransitionTable(
+                hexToIntArray(hex.substring(0, 16), hexToIntArray(hex.substring(16, 32))));
+        default:
+            throw Error(`Hex string length must be 16 or 32, got ${hex.length}`);
+    }
+};
+
+TransitionTable.isValidHex = (hex) => {
+    switch (hex.length) {
+        case 32:
+            return TransitionTable.isValidHex(hex.substring(0, 16)) &&
+                   TransitionTable.isValidHex(hex.substring(16, 32));
+        case 16:
+            const hexUpper = hex.toUpperCase();
+            const chars = new Set();
+            for (let i = 0; i < hexUpper.length; i++) {
+                if (!HEX_INDEX_MAP.has(hexUpper[i])) {
+                    return false;
+                }
+                chars.add(hexUpper[i]);
+            }
+            return chars.size === 16;
+        default:
+            return false;
+    }
+};
 
 const verifyAndInvertStates = (states) => {
     if (states.length !== 16) {

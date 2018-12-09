@@ -1,5 +1,5 @@
 import { Animation, AnimationStep } from '../model/animation.js';
-import { Rules } from '../model/ca.js';
+import { TransitionTable, Rules } from '../model/ca.js';
 import { AnimationEditor } from './animationeditor.js';
 
 export const ControlBarComponent = Vue.extend({
@@ -8,12 +8,19 @@ export const ControlBarComponent = Vue.extend({
             <div>
                 Rule:
                 <select v-model="selectedRule" @change="updateTransitionRule()">
-                    <option v-for="rule in availableRules" :value="rule">
+                    <option v-for="rule in state.availableRules" :value="rule">
                         {{rule.name}}
                     </option>
                 </select>
                 <button @click="stepForward()">Step forward</button>
                 <button @click="stepBackward()">Step backward</button>
+            </div>
+            <div>
+                New rule:
+                <input type="text" size="36" v-model="newRuleHex" />
+                <button
+                    :disabled="!isValidRuleHex(newRuleHex)"
+                    @click="addRuleFromHex(newRuleHex)">Add rule</button>
             </div>
             <div>
                 <button @click="runForward()">Run forward</button>
@@ -46,7 +53,7 @@ export const ControlBarComponent = Vue.extend({
                 <button @click="updateActiveCells()">Update cells</button>
             </div>
             <div>
-                <AnimationEditor :animation="animation" />
+                <AnimationEditor :animation="animation" :rules="state.availableRules" />
                 <button @click="state.runAnimation(animation)">Run animation</button>
                 <button @click="state.runAnimation(animation.reversed())">Run reversed</button>
             </div>
@@ -62,11 +69,11 @@ export const ControlBarComponent = Vue.extend({
     data: () => ({
         activeCellsJson: '',
         targetTickCount: 0,
-        availableRules: Rules.BUILTIN_RULES,
         selectedRule: null,
         selectedBatchFrameCount: 1,
         newGridRows: 0,
         newGridCols: 0,
+        newRuleHex: '',
         animation: new Animation([new AnimationStep(Rules.CRITTERS, 1000, 2000, null)]),
     }),
 
@@ -133,5 +140,15 @@ export const ControlBarComponent = Vue.extend({
                 this.state.resizeGrid(this.newGridRows, this.newGridCols);
             }
         },
+
+        isValidRuleHex(hex) {
+            return TransitionTable.isValidHex(hex);
+        },
+
+        addRuleFromHex(hex) {
+            const newRule = this.state.addRuleFromHex(hex);
+            this.selectedRule = newRule;
+            this.updateTransitionRule();
+        }
     },
 });

@@ -1,4 +1,4 @@
-import {MargolusCA, Rules} from './ca.js';
+import { MargolusCA, Rules, TransitionTable } from './ca.js';
 
 const asyncTimeout = async (timeoutFn, millis) => {
     return new Promise((resolve, reject) => timeoutFn(resolve, millis));
@@ -20,6 +20,7 @@ export class AppState {
         this.maxMillisPerUpdate = 30;
         this.targetFrameOffset = 0;
         this.batchFrameCount = 1;
+        this.availableRules = Rules.BUILTIN_RULES.slice();
     }
 
     tick() {
@@ -193,6 +194,15 @@ export class AppState {
             }
         }
         return cells;
+    }
+
+    addRuleFromHex(hex, name) {
+        const rule = {
+            name: name || hex,
+            table: TransitionTable.fromHex(hex),
+        };
+        this.availableRules.push(rule);
+        return rule;
     }
 }
 
