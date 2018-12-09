@@ -1,4 +1,6 @@
+import { Animation, AnimationStep } from '../model/animation.js';
 import { Rules } from '../model/ca.js';
+import { AnimationEditor } from './animationeditor.js';
 
 export const ControlBarComponent = Vue.extend({
     template: `
@@ -43,25 +45,29 @@ export const ControlBarComponent = Vue.extend({
                 <button @click="retrieveActiveCells()">Retrieve cells</button>
                 <button @click="updateActiveCells()">Update cells</button>
             </div>
+            <div>
+                <AnimationEditor :animation="animation" />
+                <button @click="state.runAnimation(animation)">Run animation</button>
+                <button @click="state.runAnimation(animation.reversed())">Run reversed</button>
+            </div>
         </div>
     `,
 
     props: ['state'],
 
+    components: {
+        AnimationEditor: AnimationEditor,
+    },
+
     data: () => ({
         activeCellsJson: '',
         targetTickCount: 0,
-        availableRules: [
-            Rules.CRITTERS,
-            Rules.TRON,
-            Rules.HIGHLANDER,
-            Rules.BILLIARD_BALL,
-            Rules.SCHAEFFER,
-        ],
+        availableRules: Rules.BUILTIN_RULES,
         selectedRule: null,
         selectedBatchFrameCount: 1,
         newGridRows: 0,
         newGridCols: 0,
+        animation: new Animation([new AnimationStep(Rules.CRITTERS, 1000, 2000, null)]),
     }),
 
     mounted() {
@@ -126,6 +132,6 @@ export const ControlBarComponent = Vue.extend({
             if (Number.isFinite(this.newGridRows) && Number.isFinite(this.newGridCols)) {
                 this.state.resizeGrid(this.newGridRows, this.newGridCols);
             }
-        }
+        },
     },
 });

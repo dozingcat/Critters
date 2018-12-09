@@ -1,5 +1,9 @@
 import {MargolusCA, Rules} from './ca.js';
 
+const asyncTimeout = async (timeoutFn, millis) => {
+    return new Promise((resolve, reject) => timeoutFn(resolve, millis));
+};
+
 export class AppState {
     constructor(args) {
         args = args || {};
@@ -41,7 +45,7 @@ export class AppState {
         this.runForTicks(-Infinity);
     }
 
-    runForTicks(tickCount) {
+    async runForTicks(tickCount) {
         if (this.runStatus !== RunStatus.STOPPED) {
             return;
         }
@@ -49,10 +53,8 @@ export class AppState {
         this.ca.isReversed = (tickCount < 0);
         const absOffset = Math.abs(tickCount);
         let totalSteps = 0;
-        const tickFn = () => {
-            if (this.runStatus !== RunStatus.RUNNING_TO_TARGET) {
-                return;
-            }
+
+        while (this.runStatus === RunStatus.RUNNING_TO_TARGET) {
             const maxFrames = Math.max(1, this.batchFrameCount);
             const startTime = this.timestampFn();
             let elapsedMillis = 0;
@@ -66,14 +68,58 @@ export class AppState {
             }
             if (totalSteps < absOffset) {
                 const sleepMillis = Math.max(1, this.targetMillisPerFrame - elapsedMillis);
-                this.timeoutFn(tickFn, sleepMillis);
+                await asyncTimeout(this.timeoutFn, sleepMillis);
             }
             else {
                 this.runStatus = RunStatus.STOPPED;
             }
             this.notifyGridChanged();
-        };
-        tickFn();
+        }
+    }
+
+    async runAnimation(animation) {
+        if (this.runStatus !== RunStatus.STOPPED || animation.steps.length === 0) {
+            return;
+        }
+        this.runStatus = RunStatus.RUNNING_ANIMATION;
+
+        const steps = animation.steps.slice();
+        let stepStartTimestamp = this.timestampFn();
+        let currentStepIndex = 0;
+        let stepTicks = 0;
+        while (this.runStatus === RunStatus.RUNNING_ANIMATION) {
+            const t1 = this.timestampFn();
+            const currentStep = steps[currentStepIndex];
+            let elapsedMillis = 0;
+            const frameEndTimestamp = t1 + this.targetMillisPerFrame;
+            const fractionOfStepDoneAtFrameEnd =
+                Math.min(1, (frameEndTimestamp - stepStartTimestamp) / currentStep.durationMillis);
+            const targetTicksAtFrameEnd = fractionOfStepDoneAtFrameEnd * Math.abs(currentStep.numTicks);
+
+            this.ca.transitionRule = currentStep.transitionRule;
+            this.ca.isReversed = (currentStep.numTicks < 0);
+            while (stepTicks < targetTicksAtFrameEnd) {
+                this.ca.tick();
+                stepTicks += 1;
+                elapsedMillis = this.timestampFn() - t1;
+                if (elapsedMillis >= this.maxMillisPerUpdate) {
+                    break;
+                }
+            }
+            this.notifyGridChanged();
+            if (stepTicks >= Math.abs(currentStep.numTicks)) {
+                currentStepIndex += 1;
+                stepTicks = 0;
+                stepStartTimestamp = this.timestampFn();
+                if (currentStepIndex >= steps.length) {
+                    this.runStatus = RunStatus.STOPPED;
+                }
+            }
+            if (this.runStatus === RunStatus.RUNNING_ANIMATION) {
+                const sleepMillis = Math.max(1, this.targetMillisPerFrame - elapsedMillis);
+                await asyncTimeout(this.timeoutFn, sleepMillis);
+            }
+        }
     }
 
     stopRunning() {

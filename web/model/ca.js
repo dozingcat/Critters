@@ -18,6 +18,15 @@ const INTEGER_BITS = [
     [1, 1, 1, 1],
 ];
 
+const HEX_INDEX_MAP = (() => {
+    const chars = "0123456789ABCDEF";
+    const m = new Map();
+    for (let i = 0; i < chars.length; i++) {
+        m.set(chars[i], i);
+    }
+    return m;
+})();
+
 /**
  * Transition table for a 2x2 block of a cellular automaton using the Margolus neighborhood.
  * On every tick, the grid is divided into 2x2 blocks. On odd ticks, the blocks are shifted
@@ -48,6 +57,29 @@ class TransitionTable {
             (isForward ? this.oddForward : this.oddBackward);
         return table[index];
     }
+}
+
+const verifyAndInvertStates = (states) => {
+    if (states.length !== 16) {
+        throw Error(`States array must have length of 16, got ${states.length}`);
+    }
+    const inverse = [];
+    const sset = new Set();
+    for (let i = 0; i < states.length; i++) {
+        const s = states[i];
+        if (!Number.isInteger(s)) {
+            throw Error(`States array has non-integer at index ${i}: ${s}`);
+        }
+        if (s < 0 || s >= 16) {
+            throw Error(`States array has value out of range at index ${i}: ${s}`);
+        }
+        if (sset.has(s)) {
+            throw Error(`States array has duplicate value: ${s}`);
+        }
+        sset.add(s);
+        inverse[s] = i;
+    }
+    return inverse;
 }
 
 export class MargolusCA {
@@ -187,29 +219,6 @@ export class MargolusCA {
     }
 }
 
-const verifyAndInvertStates = (states) => {
-    if (states.length !== 16) {
-        throw Error(`States array must have length of 16, got ${states.length}`);
-    }
-    const inverse = [];
-    const sset = new Set();
-    for (let i = 0; i < states.length; i++) {
-        const s = states[i];
-        if (!Number.isInteger(s)) {
-            throw Error(`States array has non-integer at index ${i}: ${s}`);
-        }
-        if (s < 0 || s >= 16) {
-            throw Error(`States array has value out of range at index ${i}: ${s}`);
-        }
-        if (sset.has(s)) {
-            throw Error(`States array has duplicate value: ${s}`);
-        }
-        sset.add(s);
-        inverse[s] = i;
-    }
-    return inverse;
-}
-
 export const Rules = {
     // https://en.wikipedia.org/wiki/Critters_(block_cellular_automaton)
     // We use the variation that has different transitions for even and odd frames.
@@ -274,3 +283,11 @@ export const Rules = {
         ]),
     },
 };
+
+Rules.BUILTIN_RULES = [
+    Rules.CRITTERS,
+    Rules.TRON,
+    Rules.HIGHLANDER,
+    Rules.BILLIARD_BALL,
+    Rules.SCHAEFFER,
+];
