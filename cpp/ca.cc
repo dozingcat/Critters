@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <iostream>
+#include <map>
 #include <set>
 #include <thread>
 #include <utility>
@@ -29,6 +30,11 @@ const auto INTEGER_BITS = std::array<std::array<uint8_t, 4>, 16> {{
     {1, 1, 1, 1},
 }};
 
+const auto HEX_DIGIT_MAP = std::map<char, int> {
+    {'0', 0}, {'1', 1}, {'2', 2}, {'3', 3}, {'4', 4}, {'5', 5}, {'6', 6}, {'7', 7},
+    {'8', 8}, {'9', 9}, {'A', 10}, {'B', 11}, {'C', 12}, {'D', 13}, {'E', 14}, {'F', 15},
+};
+
 StateArray verify_and_invert(const StateArray& states) {
     std::set<uint16_t> used;
     uint32_t index = 0;
@@ -47,11 +53,42 @@ StateArray verify_and_invert(const StateArray& states) {
     return inverse;
 }
 
+StateArray array_for_hex(const std::string& hex) {
+    if (hex.size() != 16) {
+        throw std::invalid_argument("string must have length of 16");
+    }
+    StateArray arr;
+    for (uint32_t i = 0; i < hex.size(); i++) {
+        char ch = std::toupper(hex[i]);
+        if (!HEX_DIGIT_MAP.count(ch)) {
+            throw std::invalid_argument("invalid hex digit");
+        }
+        arr[i] = HEX_DIGIT_MAP.at(ch);
+    }
+    return arr;
+}
+
 TransitionTable::TransitionTable(const StateArray& even_forward, const StateArray& odd_forward) {
     m_even_forward = even_forward;
     m_even_backward = verify_and_invert(even_forward);
     m_odd_forward = odd_forward;
     m_odd_backward = verify_and_invert(odd_forward);
+}
+
+/* static */ std::shared_ptr<TransitionTable> TransitionTable::fromHex(const std::string& hex) {
+    switch (hex.size()) {
+        case 16: {
+            StateArray arr = array_for_hex(hex);
+            return std::make_shared<TransitionTable>(arr);
+        }
+        case 32: {
+            StateArray even = array_for_hex(hex.substr(0, 16));
+            StateArray odd = array_for_hex(hex.substr(16, 16));
+            return std::make_shared<TransitionTable>(even, odd);
+        }
+        default:
+            throw std::invalid_argument("hex string must have length of 16 or 32");
+    }
 }
 
 uint32_t TransitionTable::next_block_state(

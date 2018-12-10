@@ -16,6 +16,7 @@
 using namespace Critters;
 
 namespace {
+    /*
     enum class CAType {
         CRITTERS,
         TRON,
@@ -23,21 +24,23 @@ namespace {
         BILLIARD_BALL,
         SCHAEFFER,
     };
+    */
 
     struct Options {
+        std::string ca_type;
         uint32_t num_rows = 0;
         uint32_t num_cols = 0;
         int64_t start_frame = 0;
         int64_t end_frame = 0;
         uint64_t checkpoint_frames = 0;
-        CAType ca_type = CAType::CRITTERS;
         uint32_t num_threads = 0;
     };
 }
 
 void usage_error() {
     std::cerr << "Arguments: --rows=R --cols=C (--start=N) (--end=N) (--checkpoint=N) "
-              << "(--threads=N) (--ca=[critters|tron|highlander|billiardball|schaeffer])\n";
+              << "(--threads=N) "
+              << "(--ca=[critters|tron|highlander|billiardball|schaeffer|(16 or 32 hex chars)])\n";
     std::exit(1);
 }
 
@@ -45,40 +48,20 @@ bool starts_with(const std::string& s, const std::string& prefix) {
     return s.length() >= prefix.length() && s.substr(0, prefix.length()) == prefix;
 }
 
-int64_t int_after_equal_sign(const std::string& s) {
+std::string string_after_equal_sign(const std::string& s) {
     size_t index = s.find('=');
+    return s.substr(index + 1);
+}
+
+int64_t int_after_equal_sign(const std::string& s) {
     try {
-        return std::stoll(s.substr(index + 1));
+        return std::stoll(string_after_equal_sign(s));
     }
     catch (std::exception& ex) {
         std::cerr << "Bad argument: " << s << "\n";
         usage_error();
         return 0;
     }
-}
-
-CAType ca_type_after_equal_sign(const std::string& s) {
-    size_t index = s.find('=');
-    std::string t = std::string{s.substr(index + 1)};
-    std::transform(t.begin(), t.end(), t.begin(), [](unsigned char c) {return std::tolower(c);});
-    if (t == "critters") {
-        return CAType::CRITTERS;
-    }
-    else if (t == "tron") {
-        return CAType::TRON;
-    }
-    else if (t == "highlander") {
-        return CAType::HIGHLANDER;
-    }
-    else if (t == "billiardball") {
-        return CAType::BILLIARD_BALL;
-    }
-    else if (t == "schaeffer") {
-        return CAType::SCHAEFFER;
-    }
-    std::cerr << "Bad argument: " << s << "\n";
-    usage_error();
-    return CAType::CRITTERS;
 }
 
 Options parse_options(int argc, char** argv) {
@@ -106,7 +89,7 @@ Options parse_options(int argc, char** argv) {
                 opts.num_threads = int_after_equal_sign(s);
             }
             else if (starts_with(s, "--ca=")) {
-                opts.ca_type = ca_type_after_equal_sign(s);
+                opts.ca_type = string_after_equal_sign(s);
             }
             else {
                 std::cerr << "Unrecognized argument: " << s << "\n";
@@ -166,21 +149,26 @@ std::string json_for_cells(const std::vector<std::vector<uint32_t>>& cells) {
     return ss.str();
 }
 
-std::shared_ptr<TransitionTable> transition_table_for_type(CAType cat) {
-    switch (cat) {
-        case CAType::CRITTERS:
-            return TransitionTable::CRITTERS();
-        case CAType::TRON:
-            return TransitionTable::TRON();
-        case CAType::HIGHLANDER:
-            return TransitionTable::HIGHLANDER();
-        case CAType::BILLIARD_BALL:
-            return TransitionTable::BILLIARD_BALL();
-        case CAType::SCHAEFFER:
-            return TransitionTable::SCHAEFFER();
-        default:
-            throw std::logic_error("Unknown CAType");
+std::shared_ptr<TransitionTable> transition_table_for_type(std::string& ca_type) {
+    if (ca_type.empty() || ca_type == "critters") {
+        return TransitionTable::CRITTERS();
     }
+    if (ca_type == "tron") {
+        return TransitionTable::TRON();
+    }
+    if (ca_type == "highlander") {
+        return TransitionTable::HIGHLANDER();
+    }
+    if (ca_type == "billiardball") {
+        return TransitionTable::BILLIARD_BALL();
+    }
+    if (ca_type == "schaeffer") {
+        return TransitionTable::SCHAEFFER();
+    }
+    if (ca_type.size() == 16 || ca_type.size() == 32) {
+        return TransitionTable::fromHex(ca_type);
+    }
+    throw std::logic_error("Unknown CA type");
 }
 
 int main(int argc, char** argv) {

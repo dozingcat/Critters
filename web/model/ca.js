@@ -62,9 +62,9 @@ export class TransitionTable {
 TransitionTable.fromHex = (hex) => {
     const hexToIntArray = (h) => {
         const ints = [];
-        const hexUpper = hex.toUpperCase();
+        const hUpper = h.toUpperCase();
         for (let i = 0; i < h.length; i++) {
-            let ch = hexUpper[i];
+            let ch = hUpper[i];
             if (!HEX_INDEX_MAP.has(ch)) {
                 throw Error(`Bad hex digit: ${h[i]}`);
             }
@@ -78,7 +78,7 @@ TransitionTable.fromHex = (hex) => {
             return new TransitionTable(hexToIntArray(hex));
         case 32:
             return new TransitionTable(
-                hexToIntArray(hex.substring(0, 16), hexToIntArray(hex.substring(16, 32))));
+                hexToIntArray(hex.substring(0, 16)), hexToIntArray(hex.substring(16, 32)));
         default:
             throw Error(`Hex string length must be 16 or 32, got ${hex.length}`);
     }

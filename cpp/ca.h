@@ -33,6 +33,13 @@ public:
         bool use_even_grid, bool is_forward,
         bool top_left, bool top_right, bool bottom_left, bool bottom_right) const;
 
+    /**
+     * Creates a transition table from a hex string of 16 or 32 characters, describing one or two
+     * mappings from input to output blocks. A mapping should contain every hex digit from 0 to F
+     * exactly once.
+     */
+    static std::shared_ptr<TransitionTable> fromHex(const std::string& hex);
+
     // https://en.wikipedia.org/wiki/Critters_(block_cellular_automaton)
     // We use the variation that has different transitions for even and odd frames.
     // This preserves the number of active cells.
