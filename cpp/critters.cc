@@ -16,16 +16,6 @@
 using namespace Critters;
 
 namespace {
-    /*
-    enum class CAType {
-        CRITTERS,
-        TRON,
-        HIGHLANDER,
-        BILLIARD_BALL,
-        SCHAEFFER,
-    };
-    */
-
     struct Options {
         std::string ca_type;
         uint32_t num_rows = 0;
