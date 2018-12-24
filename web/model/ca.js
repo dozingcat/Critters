@@ -1,3 +1,5 @@
+import { hexToIntArray, intArrayToHex } from '../util/arrays.js';
+
 // Optimization for getting the bits of integers between 0 and 15.
 const INTEGER_BITS = [
     [0, 0, 0, 0],
@@ -17,15 +19,6 @@ const INTEGER_BITS = [
     [1, 1, 1, 0],
     [1, 1, 1, 1],
 ];
-
-const HEX_INDEX_MAP = (() => {
-    const chars = "0123456789ABCDEF";
-    const m = new Map();
-    for (let i = 0; i < chars.length; i++) {
-        m.set(chars[i], i);
-    }
-    return m;
-})();
 
 /**
  * Transition table for a 2x2 block of a cellular automaton using the Margolus neighborhood.
@@ -57,22 +50,15 @@ export class TransitionTable {
             (isForward ? this.oddForward : this.oddBackward);
         return table[index];
     }
+
+    toHex() {
+        const evenHex = intArrayToHex(this.evenForward);
+        const oddHex = intArrayToHex(this.oddForward);
+        return (evenHex === oddHex) ? evenHex : evenHex + oddHex;
+    }
 }
 
 TransitionTable.fromHex = (hex) => {
-    const hexToIntArray = (h) => {
-        const ints = [];
-        const hUpper = h.toUpperCase();
-        for (let i = 0; i < h.length; i++) {
-            let ch = hUpper[i];
-            if (!HEX_INDEX_MAP.has(ch)) {
-                throw Error(`Bad hex digit: ${h[i]}`);
-            }
-            ints.push(HEX_INDEX_MAP.get(ch));
-        }
-        return ints;
-    };
-
     switch (hex.length) {
         case 16:
             return new TransitionTable(hexToIntArray(hex));

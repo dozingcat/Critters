@@ -5,6 +5,7 @@ export const AppComponent = Vue.extend({
     template: `
         <div>
             <Grid :state="state" />
+
             <ControlBar :state="state" />
         </div>
     `,

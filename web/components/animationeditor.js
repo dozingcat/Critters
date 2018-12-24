@@ -1,5 +1,4 @@
-import { Rules } from '../model/ca.js';
-import { Animation, AnimationStep } from '../model/animation.js';
+import { AnimationStep } from '../model/animation.js';
 
 export const AnimationEditor = Vue.extend({
     template: `

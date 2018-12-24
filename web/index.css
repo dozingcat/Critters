@@ -2,6 +2,11 @@ html, body {
     height: 100%;
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
 }
 
 canvas {
@@ -17,10 +22,64 @@ canvas {
     padding: 16px;
 }
 
-.controls div {
+.controls > div {
     padding: 5px 0;
 }
 
 .controls input[type="number"] {
     width: 70px;
+}
+
+.transition-grid {
+    display: inline-grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.transition-grid-entry {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px;
+}
+
+.transition-grid-entry .arrow {
+    padding: 0 5px;
+}
+
+.transition-grid-entry .spacer {
+    width: 35px;
+}
+
+.transition-grid-icon {
+    display: inline-grid;
+    width: 30px;
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.transition-grid-icon > div {
+    height: 15px;
+    border: 1px solid black;
+    background: white;
+}
+
+.transition-grid-icon > div.on {
+    background: black;
+}
+
+.rule-dialog-overlay {
+    position: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.rule-dialog {
+    background: white;
+    border: 1px solid black;
+    display: inline-block;
+    padding: 8px;
 }

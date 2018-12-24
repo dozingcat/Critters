@@ -1,6 +1,7 @@
 import { Animation, AnimationStep } from '../model/animation.js';
 import { TransitionTable, Rules } from '../model/ca.js';
 import { AnimationEditor } from './animationeditor.js';
+import { TransitionTableEditor } from './ruleeditor.js';
 
 export const ControlBarComponent = Vue.extend({
     template: `
@@ -16,11 +17,13 @@ export const ControlBarComponent = Vue.extend({
                 <button @click="stepBackward()">Step backward</button>
             </div>
             <div>
-                New rule:
-                <input type="text" size="36" v-model="newRuleHex" />
+                <button :disabled="ruleDialogVisible" @click="ruleDialogVisible = true">
+                    New rule...
+                </button>
                 <button
                     :disabled="!isValidRuleHex(newRuleHex)"
-                    @click="addRuleFromHex(newRuleHex)">Add rule</button>
+                    @click="addRuleFromHex(newRuleHex)">Add rule from hex</button>
+                <input type="text" size="36" v-model="newRuleHex" />
             </div>
             <div>
                 <button @click="runForward()">Run forward</button>
@@ -57,6 +60,15 @@ export const ControlBarComponent = Vue.extend({
                 <button @click="state.runAnimation(animation)">Run animation</button>
                 <button @click="state.runAnimation(animation.reversed())">Run reversed</button>
             </div>
+            <div class="rule-dialog-overlay" v-if="ruleDialogVisible">
+                <div class="rule-dialog">
+                    <TransitionTableEditor
+                        v-if="ruleDialogVisible"
+                        :initial-table="this.selectedRule.table"
+                        @save="saveRuleFromEditor($event)"
+                        @cancel="cancelRuleEdit()" />
+                </div>
+            </div>
         </div>
     `,
 
@@ -64,6 +76,7 @@ export const ControlBarComponent = Vue.extend({
 
     components: {
         AnimationEditor: AnimationEditor,
+        TransitionTableEditor : TransitionTableEditor,
     },
 
     data: () => ({
@@ -74,6 +87,7 @@ export const ControlBarComponent = Vue.extend({
         newGridRows: 0,
         newGridCols: 0,
         newRuleHex: '',
+        ruleDialogVisible: false,
         animation: new Animation([new AnimationStep(Rules.CRITTERS, 1000, 2000, null)]),
     }),
 
@@ -149,6 +163,17 @@ export const ControlBarComponent = Vue.extend({
             const newRule = this.state.addRuleFromHex(hex);
             this.selectedRule = newRule;
             this.updateTransitionRule();
-        }
+        },
+
+        saveRuleFromEditor(table) {
+            const newRule = this.state.addRuleFromHex(table.toHex());
+            this.selectedRule = newRule;
+            this.updateTransitionRule();
+            this.ruleDialogVisible = false;
+        },
+
+        cancelRuleEdit() {
+            this.ruleDialogVisible = false;
+        },
     },
 });
