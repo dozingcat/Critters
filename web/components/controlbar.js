@@ -1,4 +1,5 @@
 import { Animation, AnimationStep } from '../model/animation.js';
+import { EditMode } from '../model/state.js';
 import { TransitionTable, Rules } from '../model/ca.js';
 import { AnimationEditor } from './animationeditor.js';
 import { TransitionTableEditor } from './ruleeditor.js';
@@ -6,6 +7,20 @@ import { TransitionTableEditor } from './ruleeditor.js';
 export const ControlBarComponent = Vue.extend({
     template: `
         <div class="controls">
+            <div>
+                <label>
+                    <input type="checkbox"
+                        :checked="state.showSubgrids"
+                        @change="state.setShowSubgrids($event.currentTarget.checked)" />
+                    Show grid lines
+                </label>
+                <label>
+                    <input type="checkbox"
+                        :checked="state.isDrawModeEnabled()"
+                        @change="setDrawModeEnabled($event.currentTarget.checked)" />
+                    Enable drawing
+                </label>
+            </div>
             <div>
                 Rule:
                 <select v-model="selectedRule" @change="updateTransitionRule()">
@@ -121,6 +136,10 @@ export const ControlBarComponent = Vue.extend({
 
         stop() {
             this.state.stopRunning();
+        },
+
+        setDrawModeEnabled(enabled) {
+            this.state.setEditMode(enabled ? EditMode.DRAW : EditMode.NONE);
         },
 
         reset() {

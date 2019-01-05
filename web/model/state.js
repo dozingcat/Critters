@@ -15,7 +15,8 @@ export class AppState {
         this.ca.transitionRule = Rules.CRITTERS;
         this.gridCallbacks = new Set();
         this.runStatus = RunStatus.STOPPED;
-        this.editMode = EditMode.NONE;
+        this.editMode = EditMode.DRAW;
+        this.showSubgrids = true;
         this.targetMillisPerFrame = 16;
         this.maxMillisPerUpdate = 30;
         this.targetFrameOffset = 0;
@@ -44,6 +45,10 @@ export class AppState {
 
     runBackward() {
         this.runForTicks(-Infinity);
+    }
+
+    isRunning() {
+        return this.runStatus !== RunStatus.STOPPED;
     }
 
     async runForTicks(tickCount) {
@@ -152,6 +157,19 @@ export class AppState {
 
     setBatchFrameCount(count) {
         this.batchFrameCount = count;
+    }
+
+    setShowSubgrids(show) {
+        this.showSubgrids = show;
+        this.notifyGridChanged();
+    }
+
+    isDrawModeEnabled() {
+        return this.editMode === EditMode.DRAW;
+    }
+
+    setEditMode(mode) {
+        this.editMode = mode;
     }
 
     reset() {
