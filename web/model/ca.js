@@ -1,4 +1,4 @@
-import { hexToIntArray, intArrayToHex } from '../util/arrays.js';
+import { hexToIntArray, intArrayToHex, isHexChar } from '../util/arrays.js';
 
 // Optimization for getting the bits of integers between 0 and 15.
 const INTEGER_BITS = [
@@ -77,14 +77,14 @@ TransitionTable.isValidHex = (hex) => {
                    TransitionTable.isValidHex(hex.substring(16, 32));
         case 16:
             const hexUpper = hex.toUpperCase();
-            const chars = new Set();
+            const uniqueChars = new Set();
             for (let i = 0; i < hexUpper.length; i++) {
-                if (!HEX_INDEX_MAP.has(hexUpper[i])) {
+                if (!isHexChar(hexUpper[i])) {
                     return false;
                 }
-                chars.add(hexUpper[i]);
+                uniqueChars.add(hexUpper[i]);
             }
-            return chars.size === 16;
+            return uniqueChars.size === 16;
         default:
             return false;
     }
@@ -313,6 +313,13 @@ export const Rules = {
             0b0001, 0b1001, 0b0101, 0b1011, 0b0011, 0b1101, 0b1110, 0b1111,
         ]),
     },
+
+    // https://dmishin.blogspot.com/2013/11/the-single-rotation-rule-remarkably.html
+    SINGLE_ROTATION: {
+        name: 'Single Rotation',
+        // Rotate 90 degrees if one cell is active.
+        table: new TransitionTable([0, 2, 8, 3, 1, 5, 6, 7, 4, 9, 10, 11, 12, 13, 14, 15]),
+    },
 };
 
 Rules.BUILTIN_RULES = [
@@ -321,4 +328,5 @@ Rules.BUILTIN_RULES = [
     Rules.HIGHLANDER,
     Rules.BILLIARD_BALL,
     Rules.SCHAEFFER,
+    Rules.SINGLE_ROTATION,
 ];

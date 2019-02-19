@@ -30,7 +30,7 @@ namespace {
 void usage_error() {
     std::cerr << "Arguments: --rows=R --cols=C (--start=N) (--end=N) (--checkpoint=N) "
               << "(--threads=N) "
-              << "(--ca=[critters|tron|highlander|billiardball|schaeffer|(16 or 32 hex chars)])\n";
+              << "(--ca=[critters|tron|highlander|billiardball|schaeffer|singlerotation|(16 or 32 hex chars)])\n";
     std::exit(1);
 }
 
@@ -154,6 +154,9 @@ std::shared_ptr<TransitionTable> transition_table_for_type(std::string& ca_type)
     }
     if (ca_type == "schaeffer") {
         return TransitionTable::SCHAEFFER();
+    }
+    if (ca_type == "singlerotation") {
+        return TransitionTable::SINGLE_ROTATION();
     }
     if (ca_type.size() == 16 || ca_type.size() == 32) {
         return TransitionTable::fromHex(ca_type);

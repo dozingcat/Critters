@@ -55,3 +55,5 @@ export const hexToIntArray = (hex) => {
     }
     return ints;
 };
+
+export const isHexChar = (ch) => HEX_INDEX_MAP.has(ch);

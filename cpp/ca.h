@@ -103,6 +103,13 @@ public:
                 });
     }
 
+    // https://dmishin.blogspot.com/2013/11/the-single-rotation-rule-remarkably.html
+    static std::shared_ptr<TransitionTable> SINGLE_ROTATION() {
+        // Rotate 90 degrees if one cell is active.
+        return std::make_shared<TransitionTable>(
+                StateArray {0, 2, 8, 3, 1, 5, 6, 7, 4, 9, 10, 11, 12, 13, 14, 15});
+    }
+
 private:
     StateArray m_even_forward;
     StateArray m_even_backward;
