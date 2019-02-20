@@ -75,16 +75,16 @@ TransitionTable::TransitionTable(const StateArray& even_forward, const StateArra
     m_odd_backward = verify_and_invert(odd_forward);
 }
 
-/* static */ std::shared_ptr<TransitionTable> TransitionTable::fromHex(const std::string& hex) {
+/* static */ std::unique_ptr<TransitionTable> TransitionTable::fromHex(const std::string& hex) {
     switch (hex.size()) {
         case 16: {
             StateArray arr = array_for_hex(hex);
-            return std::make_shared<TransitionTable>(arr);
+            return std::make_unique<TransitionTable>(arr);
         }
         case 32: {
             StateArray even = array_for_hex(hex.substr(0, 16));
             StateArray odd = array_for_hex(hex.substr(16, 16));
-            return std::make_shared<TransitionTable>(even, odd);
+            return std::make_unique<TransitionTable>(even, odd);
         }
         default:
             throw std::invalid_argument("hex string must have length of 16 or 32");

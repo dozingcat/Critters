@@ -39,15 +39,15 @@ public:
      * mappings from input to output blocks. A mapping should contain every hex digit from 0 to F
      * exactly once.
      */
-    static std::shared_ptr<TransitionTable> fromHex(const std::string& hex);
+    static std::unique_ptr<TransitionTable> fromHex(const std::string& hex);
 
     // https://en.wikipedia.org/wiki/Critters_(block_cellular_automaton)
     // We use the variation that has different transitions for even and odd frames.
     // This preserves the number of active cells.
-    static std::shared_ptr<TransitionTable> CRITTERS() {
+    static std::unique_ptr<TransitionTable> CRITTERS() {
         // If two cells are active, invert the block. Rotate a half turn if three cells are active
         // on an even frame, or if one cell is active on an odd frame.
-        return std::make_shared<TransitionTable>(
+        return std::make_unique<TransitionTable>(
                 StateArray {
                     0b0000, 0b0001, 0b0010, 0b1100, 0b0100, 0b1010, 0b1001, 0b1110,
                     0b1000, 0b0110, 0b0101, 0b1101, 0b0011, 0b1011, 0b0111, 0b1111,
@@ -63,17 +63,17 @@ public:
     // That causes lots of flashing, so we do the opposite and invert if between 1 and 3
     // are active. This is equivalent to applying the none/all rule and then inverting the
     // entire grid, so the overall behavior is the same.
-    static std::shared_ptr<TransitionTable> TRON(){
+    static std::unique_ptr<TransitionTable> TRON(){
         // 0000 and 1111 are unchanged, everything else inverts (i => 15-i).
-        return std::make_shared<TransitionTable>(
+        return std::make_unique<TransitionTable>(
                 StateArray {0, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 15});
     }
 
     // https://www.mitpressjournals.org/doi/abs/10.1162/978-0-262-32621-6-ch084
-    static std::shared_ptr<TransitionTable> HIGHLANDER() {
+    static std::unique_ptr<TransitionTable> HIGHLANDER() {
         // Invert if two cells are active, rotate a quarter turn counterclockwise if one cell is
         // active, rotate a quarter turn clockwise if three cells are active.
-        return std::make_shared<TransitionTable>(
+        return std::make_unique<TransitionTable>(
                 StateArray {
                     0b0000, 0b0100, 0b0001, 0b1100, 0b1000, 0b1010, 0b1001, 0b1011,
                     0b0010, 0b0110, 0b0101, 0b1110, 0b0011, 0b0111, 0b1101, 0b1111,
@@ -82,10 +82,10 @@ public:
 
     // https://en.wikipedia.org/wiki/Reversible_cellular_automaton#Billiard_ball_computation_and_low-power_computing
     // http://fab.cba.mit.edu/classes/862.16/notes/computation/Margolus-1984.pdf
-    static std::shared_ptr<TransitionTable> BILLIARD_BALL() {
+    static std::unique_ptr<TransitionTable> BILLIARD_BALL() {
         // Rotate a half turn if one cell is active. Invert if two cells are active and
         // diagonally opposite.
-        return std::make_shared<TransitionTable>(
+        return std::make_unique<TransitionTable>(
                 StateArray {
                     0b0000, 0b1000, 0b0100, 0b0011, 0b0010, 0b0101, 0b1001, 0b0111,
                     0b0001, 0b0110, 0b1010, 0b1011, 0b1100, 0b1101, 0b1110, 0b1111,
@@ -93,10 +93,10 @@ public:
     }
 
     // https://web.mit.edu/lrs/www/physCA/
-    static std::shared_ptr<TransitionTable> SCHAEFFER() {
+    static std::unique_ptr<TransitionTable> SCHAEFFER() {
         // Rotate a half turn if one or two cells are active. (This is a no-op if two active cells
         // are diagonally opposite).
-        return std::make_shared<TransitionTable>(
+        return std::make_unique<TransitionTable>(
                 StateArray {
                     0b0000, 0b1000, 0b0100, 0b1100, 0b0010, 0b1010, 0b0110, 0b0111,
                     0b0001, 0b1001, 0b0101, 0b1011, 0b0011, 0b1101, 0b1110, 0b1111,
@@ -104,9 +104,9 @@ public:
     }
 
     // https://dmishin.blogspot.com/2013/11/the-single-rotation-rule-remarkably.html
-    static std::shared_ptr<TransitionTable> SINGLE_ROTATION() {
+    static std::unique_ptr<TransitionTable> SINGLE_ROTATION() {
         // Rotate 90 degrees if one cell is active.
-        return std::make_shared<TransitionTable>(
+        return std::make_unique<TransitionTable>(
                 StateArray {0, 2, 8, 3, 1, 5, 6, 7, 4, 9, 10, 11, 12, 13, 14, 15});
     }
 
